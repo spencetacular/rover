@@ -1,7 +1,13 @@
 ﻿#pragma strict
 
-var movementSpeed = 1.0;                
-var turnSpeed = 30.0;          
+var movementSpeed : float;                
+var turnSpeed : float;
+
+var heading : float;
+
+var bumpsOn : boolean;  
+
+var headingNorth : boolean;        
 
 var moveLongDuration : float;
 var moveLongTicker : float;
@@ -10,7 +16,7 @@ var moveShortTicker : float;
 
 var turnedRight :boolean;
 var paused = false;
-var mode = "moveLong";
+var mode = "";
 private var m_Rigidbody: Rigidbody;
 
 function Awake() {
@@ -18,19 +24,36 @@ function Awake() {
 }
 
 function Start () {
-	moveLongDuration = 5.0;
+
+	movementSpeed = 1.0;
+	turnSpeed = 30.0;
+	moveLongDuration = 20.0;
 	moveLongTicker = moveLongDuration;
 	moveShortDuration = 0.5;
 	moveShortTicker =moveShortDuration;
+
+	heading = transform.eulerAngles.y;
 	turnedRight = false;
+
+	headingNorth = true;
+	mode = "courseCorrection";
+
+	bumpsOn = true;
 
 }
 
 function Update () {
+ heading = transform.eulerAngles.y;
+//	if(transform.eulerAngles.y < 360.0){
+//		heading = transform.eulerAngles.y;
+//	}else{heading = transform.eulerAngles.y -360.0;}
 
 	if(paused == false){
+		if(mode == "courseCorrection"){
+			CourseCorrection();
+		}
 		if(mode == "moveLong"){
-		MoveForwardLong();
+			MoveForwardLong();
 		}
 		if(mode == "firstTurnRight"){
 			TurnRightFirst();
@@ -53,6 +76,8 @@ function Update () {
 //		Debug.Log(mode);
 	}
 }
+
+
 
 private function MoveForwardLong() {
 
@@ -115,9 +140,8 @@ private function TurnLeftFirst() {
 
 	if(transform.eulerAngles.y > 90.0){
 		transform.Rotate(Vector3.up,  -turnSpeed * Time.deltaTime);
-	}else{
-		mode = "moveShort";
-	}
+	}else mode = "moveShort";
+	
 }
 
 private function TurnLeftSecond() {
@@ -131,6 +155,45 @@ private function TurnLeftSecond() {
 		moveShortTicker = moveShortDuration;
 		turnedRight = false;
 	}
+}
+
+
+
+function CourseCorrection( ){
+
+	var direction : float;
+
+	if(headingNorth){
+
+		if(heading >= 180) direction = 1.0;
+		else direction = -1.0;
+
+		if(heading < 359.0 && heading >1.0  ){
+			transform.Rotate(Vector3.up,  direction * turnSpeed * Time.deltaTime);
+		}else mode = "moveLong";
+
+	}
+
+	if(headingNorth == false){
+
+		if(heading >= 0 && heading <= 180 ) direction = 1.0;
+		else direction = -1.0;
+
+		if(heading < 179.0 || heading > 181.0){
+			transform.Rotate(Vector3.up,  direction * turnSpeed * Time.deltaTime);
+		}else mode = "moveLong";
+	}
+
+
+}
+
+function Bump(degrees : float){
+	if(mode == "moveLong" && bumpsOn == true){
+		transform.Rotate(Vector3.up, degrees);
+		Debug.Log("Bump!");
+		Debug.Log(transform.eulerAngles.y);
+	}
+
 }
 
 

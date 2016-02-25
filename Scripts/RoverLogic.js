@@ -57,12 +57,10 @@ function Photograph(){
 
 function OnTriggerEnter (other: Collider)
 {
-	Debug.Log("Collision");
 	other.gameObject.GetComponent(BoxCollider).enabled = false;
 	
 	if(mode == "detecting" && roverMovement.mode == "moveLong"){
 		mode = "stopping";
-		Debug.Log("called");
 	}
 
 }
