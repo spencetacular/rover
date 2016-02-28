@@ -1,5 +1,6 @@
 ﻿#pragma strict
 
+public var roverControl : RoverControl;
 public var roverMovement : RoverMovement;
 public var bottomCamera : GameObject;
 
@@ -7,11 +8,12 @@ var stopDelayTicker : float;
 var photographDelayTicker : float;
 var stopDelayDuration : float;
 var photographDelayDuration : float;
-var mode = "detecting";
+var mode = "";
 
 function Start () {
 	roverMovement = GetComponent(RoverMovement);
-
+	roverControl = GetComponent(RoverControl);
+	mode = "detecting";
 	stopDelayDuration = 0.8;
 	photographDelayDuration = 1.0;
 	stopDelayTicker = stopDelayDuration;
@@ -21,22 +23,19 @@ function Start () {
 
 function Update () {
 
-	if(mode == "stopping"){
-		Stop();
-	}
-	if(mode === "photographing"){
-		Photograph();
-	}
+	if(roverControl.systemPaused == false){
 
-//	Debug.Log(roverMovement.paused);
-//	Debug.Log(mode);
+		if(mode == "stopping") Stop();
+		if(mode === "photographing") Photograph();
+
+	}
 
 }
 
 function Stop(){
 	stopDelayTicker -= Time.deltaTime;
 	if(stopDelayTicker <= 0){
-		roverMovement.paused = true;
+		roverMovement.movementPaused = true;
 		mode = "photographing";
 	}
 }
@@ -46,7 +45,7 @@ function Photograph(){
 	bottomCamera.GetComponent(Light).intensity = 0.3;
 
 	if(photographDelayTicker <= 0){
-		roverMovement.paused = false;
+		roverMovement.movementPaused = false;
 		mode = "detecting";
 		stopDelayTicker = stopDelayDuration;
 		photographDelayTicker = stopDelayDuration;

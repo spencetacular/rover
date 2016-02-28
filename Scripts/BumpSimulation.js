@@ -1,44 +1,40 @@
 ﻿#pragma strict
 
 public var roverMovement : RoverMovement;
+public var roverControl : RoverControl;
 
 var bumpDegrees : float;
 var bumpTicker : float;
 
-
-
 function Start () {
 	roverMovement = GetComponent(RoverMovement);
-
-//	bumpMagnitude = 1.0;
+	roverControl = GetComponent(RoverControl);
 
 	newBump();
-
-
-
-
 }
 
 function newBump(){
 	bumpTicker = Random.Range(2.0, 10.0);
 	bumpDegrees = Random.Range(-10.0, 10.0);
 
-//	Debug.Log("bump ticker: " + bumpTicker);
 }
 
+function Bump(degrees : float){
 
+	transform.Rotate(Vector3.up, degrees);
+	Debug.Log("Bump! Degrees: " + transform.eulerAngles.y);
+}
 
 function Update () {
 
-	bumpTicker -= Time.deltaTime;
+	if(roverMovement.mode == "moveLong" && roverControl.bumpsOn == true && roverControl.systemPaused == false){
 
-	 if(bumpTicker <= 0){
-	 	//apply bump to RoverMovement
-	 	roverMovement.Bump(bumpDegrees);
-//	 	Debug.Log("Bump! " + bumpDegrees );
-	 	newBump();
-	 } 
+		bumpTicker -= Time.deltaTime;
 
-
+		 if(bumpTicker <= 0){
+			Bump(bumpDegrees);
+		 	newBump();
+		 } 
+	}
 }
 

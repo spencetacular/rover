@@ -1,23 +1,24 @@
 ﻿#pragma strict
 
+public var roverControl : RoverControl;
+
 var movementSpeed : float;                
 var turnSpeed : float;
-
-var heading : float;
-
+var heading : int;
 var bumpsOn : boolean;  
-
 var headingNorth : boolean;        
-
+var movementPaused: boolean;
 var moveLongDuration : float;
 var moveLongTicker : float;
 var moveShortDuration : float;
 var moveShortTicker : float;
+var courseCorrectionDuration: float;
+var courseCorrectionTicker : float;
 
-var turnedRight :boolean;
-var paused = false;
 var mode = "";
 private var m_Rigidbody: Rigidbody;
+
+var previousMode = "";
 
 function Awake() {
 	m_Rigidbody = GetComponent(Rigidbody);
@@ -25,59 +26,66 @@ function Awake() {
 
 function Start () {
 
+	roverControl = GetComponent(RoverControl);
+
+	movementPaused = false;
+
 	movementSpeed = 1.0;
 	turnSpeed = 30.0;
 	moveLongDuration = 20.0;
 	moveLongTicker = moveLongDuration;
 	moveShortDuration = 0.5;
 	moveShortTicker =moveShortDuration;
-
-	heading = transform.eulerAngles.y;
-	turnedRight = false;
+	courseCorrectionDuration = 3.0;
+	courseCorrectionTicker = courseCorrectionDuration;
 
 	headingNorth = true;
 	mode = "courseCorrection";
 
-	bumpsOn = true;
+
 
 }
 
 function Update () {
- heading = transform.eulerAngles.y;
-//	if(transform.eulerAngles.y < 360.0){
-//		heading = transform.eulerAngles.y;
-//	}else{heading = transform.eulerAngles.y -360.0;}
 
-	if(paused == false){
-		if(mode == "courseCorrection"){
-			CourseCorrection();
-		}
+	heading = parseInt(transform.eulerAngles.y);
+
+	if(movementPaused == false && roverControl.systemPaused == false){
+		
 		if(mode == "moveLong"){
 			MoveForwardLong();
-		}
-		if(mode == "firstTurnRight"){
-			TurnRightFirst();
-		}
-		if(mode == "moveShort"){
-			MoveForwardShort();
-		}
-		if(mode == "secondTurnRight"){
-			TurnRightSecond();
-		}
-		if(mode == "firstTurnLeft"){
-			TurnLeftFirst();
-		}
-		if(mode == "secondTurnLeft"){
-			TurnLeftSecond();
+			CourseCorrectionModeTimer();
 		}
 
-//		Debug.Log("Ticker "+ moveLongTicker);
-//		Debug.Log("Short Ticker "+ moveShortTicker);
-//		Debug.Log(mode);
+		if(mode == "moveShort") MoveForwardShort();
+
+		if(mode == "courseCorrection") CourseCorrection();
+
+		if(mode == "firstTurnRight") Turn(90.0, 1.0, "moveShort");
+
+		if(mode == "secondTurnRight") Turn(180.0, 1.0, "moveLong");
+
+		if(mode == "firstTurnLeft") Turn(90.0, -1.0, "moveShort");
+		
+		if(mode == "secondTurnLeft") Turn(0.0, -1.0, "moveLong");
+
+		if(previousMode != mode){
+			Debug.Log("Mode: " + mode);
+			previousMode = mode;
+		}
+
+		
 	}
 }
 
+function CourseCorrectionModeTimer(){
+	courseCorrectionTicker -= Time.deltaTime;
 
+	if(courseCorrectionTicker <= 0){
+			mode = "courseCorrection";
+			courseCorrectionTicker = courseCorrectionDuration;
+	}
+}
 
 private function MoveForwardLong() {
 
@@ -89,11 +97,10 @@ private function MoveForwardLong() {
 
 	 } 
 	 else{
-		if(turnedRight == false){
+		if(headingNorth){
 			mode = "firstTurnRight";	
-		}else{
-			mode = "firstTurnLeft";
-		}
+		}else mode = "firstTurnLeft";
+		
 	 }
 }
 
@@ -105,59 +112,33 @@ private function MoveForwardShort() {
 		m_Rigidbody.MovePosition(m_Rigidbody.position + movement);
 
 	 } else{
-	 	if(turnedRight == false){
+	 	if(headingNorth){
 			mode = "secondTurnRight";	
-		}else{
-			mode = "secondTurnLeft";
-		}
+		}else mode = "secondTurnLeft";
 	 }
 }
 
-private function TurnRightFirst() {
+function Turn(degrees : float, direction : float, nextMode ){
 
-	if(transform.eulerAngles.y < 90.0){
-		transform.Rotate(Vector3.up,  turnSpeed * Time.deltaTime);
-
-	}else{
-		mode = "moveShort";
+	if(heading != degrees){
+		transform.Rotate(Vector3.up, direction * turnSpeed * Time.deltaTime);
 	}
-}
-
-private function TurnRightSecond() {
-
-	if(transform.eulerAngles.y < 180.0){
-		transform.Rotate(Vector3.up,  turnSpeed * Time.deltaTime);
-
-	}else{
-		mode = "moveLong";
-		moveLongTicker = moveLongDuration;
-		moveShortTicker = moveShortDuration;
-		turnedRight = true;
+	else{ 
+		if(nextMode == "moveLong"){
+			resetMoveTicker();
+			headingNorth = !headingNorth;
+		}
+		mode = nextMode;
+		
 	}
-}
-
-private function TurnLeftFirst() {
-
-	if(transform.eulerAngles.y > 90.0){
-		transform.Rotate(Vector3.up,  -turnSpeed * Time.deltaTime);
-	}else mode = "moveShort";
 	
 }
 
-private function TurnLeftSecond() {
+function resetMoveTicker(){
+	moveLongTicker = moveLongDuration;
+	moveShortTicker = moveShortDuration;
 
-	if(transform.eulerAngles.y > 1.0  ){
-		transform.Rotate(Vector3.up,  -turnSpeed * Time.deltaTime);
-
-	}else{
-		mode = "moveLong";
-		moveLongTicker = moveLongDuration;
-		moveShortTicker = moveShortDuration;
-		turnedRight = false;
-	}
 }
-
-
 
 function CourseCorrection( ){
 
@@ -168,7 +149,7 @@ function CourseCorrection( ){
 		if(heading >= 180) direction = 1.0;
 		else direction = -1.0;
 
-		if(heading < 359.0 && heading >1.0  ){
+		if(heading != 0 ){
 			transform.Rotate(Vector3.up,  direction * turnSpeed * Time.deltaTime);
 		}else mode = "moveLong";
 
@@ -179,7 +160,7 @@ function CourseCorrection( ){
 		if(heading >= 0 && heading <= 180 ) direction = 1.0;
 		else direction = -1.0;
 
-		if(heading < 179.0 || heading > 181.0){
+		if(heading != 180){
 			transform.Rotate(Vector3.up,  direction * turnSpeed * Time.deltaTime);
 		}else mode = "moveLong";
 	}
@@ -187,14 +168,6 @@ function CourseCorrection( ){
 
 }
 
-function Bump(degrees : float){
-	if(mode == "moveLong" && bumpsOn == true){
-		transform.Rotate(Vector3.up, degrees);
-		Debug.Log("Bump!");
-		Debug.Log(transform.eulerAngles.y);
-	}
-
-}
 
 
 
